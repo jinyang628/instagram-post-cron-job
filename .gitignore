@@ -1,2 +1,6 @@
 .env
 .venv
+.last_successful_post
+instagram-cron.log
+__pycache__/
+*.py[cod]
