@@ -13,29 +13,14 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from constants import INSTAGRAM_IMAGE_URL
 
 ROOT = Path(__file__).resolve().parent
-DEFAULT_ENV_FILE = ROOT / ".env"
 STATE_FILE = ROOT / ".last_successful_post"
 
 
 class InstagramError(RuntimeError):
     """Raised when Instagram rejects a publishing request."""
-
-
-def load_env(path: Path = DEFAULT_ENV_FILE) -> None:
-    """Load simple KEY=VALUE entries without overwriting the process environment."""
-    if not path.exists():
-        return
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        value = value.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
-            value = value[1:-1]
-        os.environ.setdefault(key.strip(), value)
 
 
 def request_json(url: str, data: dict[str, str] | None = None) -> dict[str, Any]:
@@ -77,11 +62,8 @@ def publish_image(
     if not creation_id:
         raise InstagramError(f"Instagram did not return a creation ID: {container}")
 
-    status_url = (
-        f"{base_url}/{creation_id}?"
-        + urllib.parse.urlencode(
-            {"fields": "status_code,status", "access_token": access_token}
-        )
+    status_url = f"{base_url}/{creation_id}?" + urllib.parse.urlencode(
+        {"fields": "status_code,status", "access_token": access_token}
     )
     for attempt in range(12):
         status = request_json(status_url)
@@ -114,7 +96,6 @@ def required_env(name: str) -> str:
 
 
 def main() -> int:
-    load_env()
     today = date.today().isoformat()
     if STATE_FILE.exists() and STATE_FILE.read_text(encoding="utf-8").strip() == today:
         print(f"Already posted successfully on {today}; skipping.")
@@ -122,11 +103,11 @@ def main() -> int:
 
     try:
         media_id = publish_image(
-            image_url=required_env("INSTAGRAM_IMAGE_URL"),
+            image_url=INSTAGRAM_IMAGE_URL,
             caption=os.getenv("INSTAGRAM_CAPTION", ""),
             access_token=required_env("INSTAGRAM_ACCESS_TOKEN"),
             instagram_user_id=required_env("INSTAGRAM_USER_ID"),
-            graph_api_version=os.getenv("GRAPH_API_VERSION", "v25.0"),
+            graph_api_version=os.getenv("GRAPH_API_VERSION"),
         )
     except InstagramError as exc:
         print(f"Post failed: {exc}", file=sys.stderr)

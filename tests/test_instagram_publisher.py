@@ -1,23 +1,12 @@
 import json
-import tempfile
 import unittest
 import urllib.error
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import instagram_publisher as publisher
 
 
 class InstagramPublisherTests(unittest.TestCase):
-    def test_load_env_preserves_existing_values(self):
-        with tempfile.TemporaryDirectory() as directory:
-            env_file = Path(directory) / ".env"
-            env_file.write_text("ONE=from-file\nTWO='quoted value'\n", encoding="utf-8")
-            with patch.dict("os.environ", {"ONE": "existing"}, clear=True):
-                publisher.load_env(env_file)
-                self.assertEqual("existing", publisher.os.environ["ONE"])
-                self.assertEqual("quoted value", publisher.os.environ["TWO"])
-
     @patch("instagram_publisher.time.sleep")
     @patch("instagram_publisher.request_json")
     def test_publish_waits_for_container_then_publishes(self, request_json, _sleep):
@@ -42,9 +31,7 @@ class InstagramPublisherTests(unittest.TestCase):
     @patch("instagram_publisher.urllib.request.urlopen")
     def test_request_json_reports_graph_error(self, urlopen):
         error_body = MagicMock()
-        error_body.read.return_value = json.dumps(
-            {"error": {"message": "Bad token"}}
-        ).encode()
+        error_body.read.return_value = json.dumps({"error": {"message": "Bad token"}}).encode()
         error_body.__enter__.return_value = error_body
         urlopen.side_effect = urllib.error.HTTPError(
             "https://example.com", 400, "Bad Request", {}, error_body
