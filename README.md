@@ -3,28 +3,35 @@
 This project publishes `images/cucumber.jpg` to Instagram once per day using
 the Instagram Graph API. It uses only Python's standard library.
 
-## Requirements
+The default `GRAPH_API_HOST` is `graph.instagram.com`, for access tokens created
+through **Instagram > API setup with Instagram business login**. Tokens created
+through Facebook Login use a different host and permission flow.
 
-- An Instagram **Professional** account (Business or Creator) linked to a
-  Facebook Page.
-- A long-lived access token with `instagram_basic`, `pages_show_list`,
-  `pages_read_engagement`, and `instagram_content_publish` permissions.
-- The numeric Instagram account ID.
-- A public HTTPS URL for `images/cucumber.jpg`. Instagram fetches the image
-  from a URL; it cannot publish a file that exists only on this computer.
+## Set up Poetry
 
-## Configure
-
-Copy the example and fill in the three required values:
+Please follow the official [installation guide](https://python-poetry.org/docs/#installation) to install Poetry, which will be used to manage dependencies and environments.
 
 ```bash
+# Install dependencies
+poetry install
+```
+
+```bash
+# Activate Python Virtual Environment for Mac/Linux
+eval "$(poetry env activate)"
+
+# Activate Python Virtual Environment for Windows
+.venv\Scripts\Activate.ps1
+```
+
+## Set up environment variables
+
+```bash
+# Create .env file (by copying from .env.example)
 cp .env.example .env
 ```
 
-`INSTAGRAM_IMAGE_URL` should point to an unchanged, publicly downloadable copy
-of `images/cucumber.jpg`. Do not commit `.env`; it contains a secret token.
-
-Test one post manually:
+## Test one post manually
 
 ```bash
 ./run_daily.sh

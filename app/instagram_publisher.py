@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 import time
@@ -13,14 +14,18 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from constants import INSTAGRAM_IMAGE_URL
+from dotenv import load_dotenv
+
+from app.constants import INSTAGRAM_IMAGE_URL
+from app.errors import InstagramError
+from app.utils import required_env
+
+log = logging.getLogger(__name__)
+
+load_dotenv()
 
 ROOT = Path(__file__).resolve().parent
 STATE_FILE = ROOT / ".last_successful_post"
-
-
-class InstagramError(RuntimeError):
-    """Raised when Instagram rejects a publishing request."""
 
 
 def request_json(url: str, data: dict[str, str] | None = None) -> dict[str, Any]:
@@ -49,7 +54,7 @@ def publish_image(
     graph_api_version: str,
 ) -> str:
     """Create an image container, wait for it, and publish it."""
-    base_url = f"https://graph.facebook.com/{graph_api_version}"
+    base_url = f"https://graph.instagram.com/{graph_api_version}"
     container = request_json(
         f"{base_url}/{instagram_user_id}/media",
         {
@@ -88,17 +93,10 @@ def publish_image(
     return str(media_id)
 
 
-def required_env(name: str) -> str:
-    value = os.getenv(name, "").strip()
-    if not value:
-        raise InstagramError(f"Missing required setting: {name}")
-    return value
-
-
 def main() -> int:
     today = date.today().isoformat()
     if STATE_FILE.exists() and STATE_FILE.read_text(encoding="utf-8").strip() == today:
-        print(f"Already posted successfully on {today}; skipping.")
+        log.info(f"Already posted successfully on {today}; skipping.")
         return 0
 
     try:
@@ -107,14 +105,14 @@ def main() -> int:
             caption=os.getenv("INSTAGRAM_CAPTION", ""),
             access_token=required_env("INSTAGRAM_ACCESS_TOKEN"),
             instagram_user_id=required_env("INSTAGRAM_USER_ID"),
-            graph_api_version=os.getenv("GRAPH_API_VERSION"),
+            graph_api_version=os.getenv("GRAPH_API_VERSION", "v25.0"),
         )
     except InstagramError as exc:
-        print(f"Post failed: {exc}", file=sys.stderr)
+        log.error(f"Post failed: {exc}", file=sys.stderr)
         return 1
 
     STATE_FILE.write_text(today + "\n", encoding="utf-8")
-    print(f"Published Instagram media {media_id} on {today}.")
+    log.info(f"Published Instagram media {media_id} on {today}.")
     return 0
 
 

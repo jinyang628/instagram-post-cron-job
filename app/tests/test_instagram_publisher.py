@@ -3,12 +3,12 @@ import unittest
 import urllib.error
 from unittest.mock import MagicMock, patch
 
-import instagram_publisher as publisher
+from app import instagram_publisher as publisher
 
 
 class InstagramPublisherTests(unittest.TestCase):
-    @patch("instagram_publisher.time.sleep")
-    @patch("instagram_publisher.request_json")
+    @patch("app.instagram_publisher.time.sleep")
+    @patch("app.instagram_publisher.request_json")
     def test_publish_waits_for_container_then_publishes(self, request_json, _sleep):
         request_json.side_effect = [
             {"id": "container-1"},
@@ -27,8 +27,12 @@ class InstagramPublisherTests(unittest.TestCase):
 
         self.assertEqual("media-1", media_id)
         self.assertEqual(4, request_json.call_count)
+        self.assertEqual(
+            "https://graph.instagram.com/v25.0/123/media",
+            request_json.call_args_list[0].args[0],
+        )
 
-    @patch("instagram_publisher.urllib.request.urlopen")
+    @patch("app.instagram_publisher.urllib.request.urlopen")
     def test_request_json_reports_graph_error(self, urlopen):
         error_body = MagicMock()
         error_body.read.return_value = json.dumps({"error": {"message": "Bad token"}}).encode()
