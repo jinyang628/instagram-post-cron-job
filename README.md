@@ -1,11 +1,8 @@
 # Daily Instagram cucumber post
 
-This project publishes `images/cucumber.jpg` to Instagram once per day using
-the Instagram Graph API. It uses only Python's standard library.
-
-The default `GRAPH_API_HOST` is `graph.instagram.com`, for access tokens created
-through **Instagram > API setup with Instagram business login**. Tokens created
-through Facebook Login use a different host and permission flow.
+This project asks OpenRouter's free-model router to write a dad joke, then
+publishes `images/cucumber.jpg` to Instagram with that joke as its caption once
+per day using the Instagram Graph API.
 
 ## Set up Poetry
 
@@ -62,5 +59,5 @@ must be awake and connected at the scheduled time.
 Run the tests with:
 
 ```bash
-python3 -m unittest discover -s tests
+.venv/bin/python -m unittest discover -s app/tests
 ```

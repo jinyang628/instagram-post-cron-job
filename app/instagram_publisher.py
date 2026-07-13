@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import sys
 import time
 import urllib.error
 import urllib.parse
@@ -17,7 +16,8 @@ from typing import Any
 from dotenv import load_dotenv
 
 from app.constants import INSTAGRAM_IMAGE_URL
-from app.errors import InstagramError
+from app.errors import CaptionGenerationError, InstagramError
+from app.prompts import SYSTEM_PROMPT, USER_PROMPT
 from app.utils import required_env
 
 log = logging.getLogger(__name__)
@@ -26,6 +26,56 @@ load_dotenv()
 
 ROOT = Path(__file__).resolve().parent
 STATE_FILE = ROOT / ".last_successful_post"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_MODEL = "openrouter/free"
+
+
+def generate_dad_joke(api_key: str) -> str:
+    """Generate a single dad joke using OpenRouter's free-model router."""
+    payload = {
+        "model": OPENROUTER_MODEL,
+        "messages": [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT,
+            },
+            {"role": "user", "content": USER_PROMPT},
+        ],
+        "max_tokens": 500,
+        "temperature": 1,
+    }
+    request = urllib.request.Request(
+        OPENROUTER_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            result = json.load(response)
+    except urllib.error.HTTPError as exc:
+        try:
+            error_payload = json.load(exc)
+            message = error_payload.get("error", {}).get("message", str(error_payload))
+        except (json.JSONDecodeError, AttributeError):
+            message = exc.reason
+        raise CaptionGenerationError(f"OpenRouter API returned HTTP {exc.code}: {message}") from exc
+    except urllib.error.URLError as exc:
+        raise CaptionGenerationError(f"Could not reach OpenRouter: {exc.reason}") from exc
+    except json.JSONDecodeError as exc:
+        raise CaptionGenerationError("OpenRouter returned invalid JSON") from exc
+
+    try:
+        joke = result["choices"][0]["message"]["content"].strip()
+    except (KeyError, IndexError, TypeError, AttributeError) as exc:
+        raise CaptionGenerationError(f"OpenRouter did not return a text caption: {result}") from exc
+    if not joke:
+        raise CaptionGenerationError("OpenRouter returned an empty caption")
+    return joke
 
 
 def request_json(url: str, data: dict[str, str] | None = None) -> dict[str, Any]:
@@ -100,15 +150,17 @@ def main() -> int:
         return 0
 
     try:
+        caption = generate_dad_joke(required_env("OPEN_ROUTER_API_KEY"))
+        log.info("Generated today's dad-joke caption with OpenRouter.")
         media_id = publish_image(
             image_url=INSTAGRAM_IMAGE_URL,
-            caption=os.getenv("INSTAGRAM_CAPTION", ""),
+            caption=caption,
             access_token=required_env("INSTAGRAM_ACCESS_TOKEN"),
             instagram_user_id=required_env("INSTAGRAM_USER_ID"),
             graph_api_version=os.getenv("GRAPH_API_VERSION", "v25.0"),
         )
-    except InstagramError as exc:
-        log.error(f"Post failed: {exc}", file=sys.stderr)
+    except (CaptionGenerationError, InstagramError) as exc:
+        log.error(f"Post failed: {exc}")
         return 1
 
     STATE_FILE.write_text(today + "\n", encoding="utf-8")
