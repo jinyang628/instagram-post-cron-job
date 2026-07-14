@@ -1,8 +1,9 @@
 # Daily Instagram cucumber post
 
-This project asks OpenRouter's free-model router to write a dad joke, then
-publishes `images/cucumber.jpg` to Instagram with that joke as its caption once
-per day using the Instagram Graph API.
+This project generates an image with Hugging Face, uploads it to Cloudinary,
+asks OpenRouter's free-model router to write a dad joke, then publishes the
+public image URL to Instagram with that joke as its caption once per day using
+the Instagram Graph API.
 
 ## Set up Poetry
 
@@ -27,6 +28,11 @@ eval "$(poetry env activate)"
 # Create .env file (by copying from .env.example)
 cp .env.example .env
 ```
+
+Create a Cloudinary account and copy the cloud name, API key, and API secret
+from its API Keys page into `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and
+`CLOUDINARY_API_SECRET`. The generated image is uploaded as a public JPEG so
+Instagram's servers can fetch it while creating the media container.
 
 ## Test one post manually
 
