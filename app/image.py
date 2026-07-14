@@ -28,7 +28,6 @@ def generate_image(api_key: str, prompt: str) -> Image.Image:
         api_key=api_key,
     )
 
-    # output is a PIL.Image object
     image = client.text_to_image(
         prompt,
         model="black-forest-labs/FLUX.1-schnell",
@@ -51,8 +50,12 @@ def upload_generated_image(
     timestamp = str(int(time.time()))
     public_id = f"instagram-cron/{uuid.uuid4().hex}"
     signed_params = {"public_id": public_id, "timestamp": timestamp}
-    signature_payload = "&".join(f"{key}={value}" for key, value in sorted(signed_params.items()))
-    signature = hashlib.sha1(f"{signature_payload}{api_secret}".encode("utf-8")).hexdigest()
+    signature_payload = "&".join(
+        f"{key}={value}" for key, value in sorted(signed_params.items())
+    )
+    signature = hashlib.sha1(
+        f"{signature_payload}{api_secret}".encode("utf-8")
+    ).hexdigest()
 
     boundary = f"----instagram-cron-{uuid.uuid4().hex}"
     body = bytearray()
@@ -88,7 +91,9 @@ def upload_generated_image(
             message = error_payload.get("error", {}).get("message", str(error_payload))
         except (json.JSONDecodeError, AttributeError):
             message = exc.reason
-        raise ImageUploadError(f"Cloudinary returned HTTP {exc.code}: {message}") from exc
+        raise ImageUploadError(
+            f"Cloudinary returned HTTP {exc.code}: {message}"
+        ) from exc
     except urllib.error.URLError as exc:
         raise ImageUploadError(f"Could not reach Cloudinary: {exc.reason}") from exc
     except json.JSONDecodeError as exc:

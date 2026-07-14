@@ -18,7 +18,6 @@ from dotenv import load_dotenv
 from app.caption import generate_dad_joke
 from app.errors import CaptionGenerationError, ImageUploadError, InstagramError
 from app.image import generate_image, upload_generated_image
-from app.prompts import SYSTEM_PROMPT, USER_PROMPT
 from app.utils import required_env
 
 log = logging.getLogger(__name__)
@@ -28,9 +27,12 @@ load_dotenv()
 ROOT = Path(__file__).resolve().parent
 STATE_FILE = ROOT / ".last_successful_post"
 
+
 def request_json(url: str, data: dict[str, str] | None = None) -> dict[str, Any]:
     encoded = urllib.parse.urlencode(data).encode() if data is not None else None
-    request = urllib.request.Request(url, data=encoded, method="POST" if data else "GET")
+    request = urllib.request.Request(
+        url, data=encoded, method="POST" if data else "GET"
+    )
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             return json.load(response)
@@ -40,13 +42,14 @@ def request_json(url: str, data: dict[str, str] | None = None) -> dict[str, Any]
             message = payload.get("error", {}).get("message", str(payload))
         except (json.JSONDecodeError, AttributeError):
             message = exc.reason
-        raise InstagramError(f"Instagram API returned HTTP {exc.code}: {message}") from exc
+        raise InstagramError(
+            f"Instagram API returned HTTP {exc.code}: {message}"
+        ) from exc
     except urllib.error.URLError as exc:
         raise InstagramError(f"Could not reach Instagram: {exc.reason}") from exc
 
 
 def publish_post(
-    *,
     image_url: str,
     caption: str,
     access_token: str,

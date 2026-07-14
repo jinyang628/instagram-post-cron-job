@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 
 from PIL import Image
 
-from app import instagram_publisher as publisher
 from app import caption
+from app import instagram_publisher as publisher
 
 
 class InstagramPublisherTests(unittest.TestCase):
@@ -72,7 +72,9 @@ class InstagramPublisherTests(unittest.TestCase):
 
         self.assertEqual(0, result)
         generate_dad_joke.assert_called_once_with(api_key="openrouter-token")
-        generate_image.assert_called_once_with(api_key="hf-token", prompt="Generated joke")
+        generate_image.assert_called_once_with(
+            api_key="hf-token", prompt="Generated joke"
+        )
         self.assertEqual("Generated joke", publish_post.call_args.kwargs["caption"])
         self.assertEqual(
             "https://res.cloudinary.com/demo/image/upload/post.jpg",
@@ -103,9 +105,13 @@ class InstagramPublisherTests(unittest.TestCase):
             api_secret="cloudinary-secret",
         )
 
-        self.assertEqual("https://res.cloudinary.com/demo/image/upload/post.jpg", image_url)
+        self.assertEqual(
+            "https://res.cloudinary.com/demo/image/upload/post.jpg", image_url
+        )
         request = urlopen.call_args.args[0]
-        self.assertEqual("https://api.cloudinary.com/v1_1/demo/image/upload", request.full_url)
+        self.assertEqual(
+            "https://api.cloudinary.com/v1_1/demo/image/upload", request.full_url
+        )
         self.assertIn(b'name="file"; filename="post.jpg"', request.data)
 
     @patch("app.instagram_publisher.time.sleep")
@@ -136,7 +142,9 @@ class InstagramPublisherTests(unittest.TestCase):
     @patch("app.instagram_publisher.urllib.request.urlopen")
     def test_request_json_reports_graph_error(self, urlopen):
         error_body = MagicMock()
-        error_body.read.return_value = json.dumps({"error": {"message": "Bad token"}}).encode()
+        error_body.read.return_value = json.dumps(
+            {"error": {"message": "Bad token"}}
+        ).encode()
         error_body.__enter__.return_value = error_body
         urlopen.side_effect = urllib.error.HTTPError(
             "https://example.com", 400, "Bad Request", {}, error_body
